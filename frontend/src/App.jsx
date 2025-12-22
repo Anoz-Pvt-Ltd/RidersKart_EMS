@@ -79,7 +79,7 @@ function App() {
           {/* ================= PUBLIC ================= */}
           <Route path="/" element={<Hero />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/employees" element={<EmployeeSearch />} />
+          <Route path="/employees/:searchData" element={<EmployeeSearch />} />
           <Route path="/employees/:id" element={<EmployeeDetails />} />
 
           {/* ================= ADMIN ================= */}

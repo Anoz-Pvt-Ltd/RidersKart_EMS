@@ -7,19 +7,51 @@ import { Employee } from "../models/employee.models.js";
    SEARCH EMPLOYEES (PUBLIC)
 ======================= */
 const searchEmployees = asyncHandler(async (req, res) => {
-  const { name, employeeId, department } = req.query;
+  const { query } = req.query;
 
-  const filter = {
-    ...(name && { name: { $regex: name, $options: "i" } }),
-    ...(employeeId && { employeeId }),
-    ...(department && { department }),
-  };
+  // If no query or empty string
+  if (!query || query.trim() === "") {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "No search query provided"));
+  }
 
-  const employees = await Employee.find(filter).select(
-    "name employeeId designation department"
-  );
+  // Normalize input
+  const cleanedQuery = query.trim().toLowerCase();
 
-  res.status(200).json(new ApiResponse(200, employees));
+  // Split words (supports full sentence)
+  const keywords = cleanedQuery.split(/\s+/);
+
+  /**
+   * Build OR conditions for each keyword
+   * Each keyword can match multiple fields
+   */
+  const orConditions = keywords.flatMap((word) => [
+    { name: { $regex: word, $options: "i" } },
+    { employeeId: { $regex: word, $options: "i" } },
+    { department: { $regex: word, $options: "i" } },
+    { designation: { $regex: word, $options: "i" } },
+    { email: { $regex: word, $options: "i" } },
+    { phoneNumber: { $regex: word, $options: "i" } },
+  ]);
+
+  const employees = await Employee.find({
+    $or: orConditions,
+  })
+    .select("name employeeId designation department email phoneNumber isActive")
+    .limit(50); // safety limit
+
+  console.log("From Controller", employees);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        employees,
+        employees.length ? "Employees found" : "No employees found"
+      )
+    );
 });
 
 /* =======================
